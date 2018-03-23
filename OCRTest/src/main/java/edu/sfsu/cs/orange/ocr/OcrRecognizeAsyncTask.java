@@ -19,10 +19,8 @@ import java.io.File;
 import java.util.ArrayList;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -35,6 +33,7 @@ import com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel;
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -44,9 +43,6 @@ import org.opencv.imgproc.Imgproc;
  */
 final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
 
-    //  private static final boolean PERFORM_FISHER_THRESHOLDING = false;
-    //  private static final boolean PERFORM_OTSU_THRESHOLDING = false;
-    //  private static final boolean PERFORM_SOBEL_THRESHOLDING = false;
 
     private CaptureActivity activity;
     private TessBaseAPI baseApi;
@@ -66,86 +62,82 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
 
     @Override
     protected Boolean doInBackground(Void... arg0) {
-//        long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
+
+        ocrResult = new OcrResult();
 
         // Convert bitmap to Greyscale image
-        Bitmap bitmap = activity.getCameraManager().buildLuminanceSource(data, width, height).renderCroppedGreyscaleBitmap();
+        Bitmap bitmap = activity.getCameraManager().buildLuminanceSource(data, width, height)
+                .renderCroppedGreyscaleBitmap();
 
         Size matSize =
                 new Size(bitmap.getWidth(), bitmap.getHeight());
 
-        Mat rectKernel =
-                Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(bitmap.getWidth() / 2, bitmap.getHeight() / 2));
+        Mat rectKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(13, 5),
+                        new Point(-1, -1));
 
         // Create a Mat object from bitmap image
         Mat mat = new Mat(bitmap.getWidth(), bitmap.getHeight(), CvType.CV_8UC1);
         Utils.bitmapToMat(bitmap, mat);
 
+        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
 
         // Apply Gaussian Blur filter
-        Imgproc.GaussianBlur(mat, mat, new Size(45, 45), 0);
+        Imgproc.GaussianBlur(mat, mat, new Size(3,3), 0);
 
+        // Compute the gradient magnitude representation of the blackhat image using the Scharr operator.
 
-        // Apply BlackHat morphology
-//        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_BLACKHAT, rectKernel);
+        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_BLACKHAT, rectKernel);
+
+//        Imgproc.Sobel(mat, mat, CvType.CV_32F, 1, 0);
+//
+//        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_CLOSE, rectKernel);
+
+        Imgproc.adaptiveThreshold(mat, mat, 255,
+                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 3);
+
+//        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_CLOSE, rectKernel);
+
+//        Imgproc.erode(mat, mat, rectKernel, new Point(-1, -1), 4);
 
         // Rezize mat to fit with bitmap dimensions
         Imgproc.resize(mat, mat, matSize);
 
-        // Apply filter to mat
-
         // Convert Mat to Bitmap
         Utils.matToBitmap(mat, bitmap);
 
-
-//        String textResult;
-
-        //      if (PERFORM_FISHER_THRESHOLDING) {
-        //        Pix thresholdedImage = Thresholder.fisherAdaptiveThreshold(ReadFile.readBitmap(bitmap), 48, 48, 0.1F, 2.5F);
-        //        Log.e("OcrRecognizeAsyncTask", "thresholding completed. converting to bmp. size:" + bitmap.getWidth() + "x" + bitmap.getHeight());
-        //        bitmap = WriteFile.writeBitmap(thresholdedImage);
-        //      }
-        //      if (PERFORM_OTSU_THRESHOLDING) {
-        //        Pix thresholdedImage = Binarize.otsuAdaptiveThreshold(ReadFile.readBitmap(bitmap), 48, 48, 9, 9, 0.1F);
-        //        Log.e("OcrRecognizeAsyncTask", "thresholding completed. converting to bmp. size:" + bitmap.getWidth() + "x" + bitmap.getHeight());
-        //        bitmap = WriteFile.writeBitmap(thresholdedImage);
-        //      }
-        //      if (PERFORM_SOBEL_THRESHOLDING) {
-        //        Pix thresholdedImage = Thresholder.sobelEdgeThreshold(ReadFile.readBitmap(bitmap), 64);
-        //        Log.e("OcrRecognizeAsyncTask", "thresholding completed. converting to bmp. size:" + bitmap.getWidth() + "x" + bitmap.getHeight());
-        //        bitmap = WriteFile.writeBitmap(thresholdedImage);
-        //      }
+        String textResult;
 
         try {
             baseApi.setImage(ReadFile.readBitmap(bitmap));
-//            textResult = baseApi.getUTF8Text();
-//            timeRequired = System.currentTimeMillis() - start;
-//
-//            // Check for failure to recognize text
-//            if (textResult == null || textResult.equals("")) {
-//                return false;
-//            }
+            textResult = baseApi.getUTF8Text();
+            timeRequired = System.currentTimeMillis() - start;
+
+            // Check for failure to recognize text
+            if (textResult == null || textResult.equals("")) {
+                return false;
+            }
             ocrResult = new OcrResult();
-//            ocrResult.setWordConfidences(baseApi.wordConfidences());
-//            ocrResult.setMeanConfidence(baseApi.meanConfidence());
-//            ocrResult.setRegionBoundingBoxes(baseApi.getRegions().getBoxRects());
-//            ocrResult.setTextlineBoundingBoxes(baseApi.getTextlines().getBoxRects());
-//            ocrResult.setWordBoundingBoxes(baseApi.getWords().getBoxRects());
-//            ocrResult.setStripBoundingBoxes(baseApi.getStrips().getBoxRects());
-//
-//            // Iterate through the results.
-//            final ResultIterator iterator = baseApi.getResultIterator();
-//            int[] lastBoundingBox;
-//            ArrayList<Rect> charBoxes = new ArrayList<Rect>();
-//            iterator.begin();
-//            do {
-//                lastBoundingBox = iterator.getBoundingBox(PageIteratorLevel.RIL_SYMBOL);
-//                Rect lastRectBox = new Rect(lastBoundingBox[0], lastBoundingBox[1],
-//                        lastBoundingBox[2], lastBoundingBox[3]);
-//                charBoxes.add(lastRectBox);
-//            } while (iterator.next(PageIteratorLevel.RIL_SYMBOL));
-//            iterator.delete();
-//            ocrResult.setCharacterBoundingBoxes(charBoxes);
+            ocrResult.setWordConfidences(baseApi.wordConfidences());
+            ocrResult.setMeanConfidence( baseApi.meanConfidence());
+            ocrResult.setRegionBoundingBoxes(baseApi.getRegions().getBoxRects());
+            ocrResult.setTextlineBoundingBoxes(baseApi.getTextlines().getBoxRects());
+            ocrResult.setWordBoundingBoxes(baseApi.getWords().getBoxRects());
+            ocrResult.setStripBoundingBoxes(baseApi.getStrips().getBoxRects());
+
+            // Iterate through the results.
+            final ResultIterator iterator = baseApi.getResultIterator();
+            int[] lastBoundingBox;
+            ArrayList<Rect> charBoxes = new ArrayList<Rect>();
+            iterator.begin();
+            do {
+                lastBoundingBox = iterator.getBoundingBox(TessBaseAPI.PageIteratorLevel.RIL_SYMBOL);
+                Rect lastRectBox = new Rect(lastBoundingBox[0], lastBoundingBox[1],
+                        lastBoundingBox[2], lastBoundingBox[3]);
+                charBoxes.add(lastRectBox);
+            } while (iterator.next(TessBaseAPI.PageIteratorLevel.RIL_SYMBOL));
+            iterator.delete();
+            ocrResult.setCharacterBoundingBoxes(charBoxes);
 
         } catch (RuntimeException e) {
             Log.e("OcrRecognizeAsyncTask", "Caught RuntimeException in request to Tesseract. Setting state to CONTINUOUS_STOPPED.");
@@ -158,10 +150,10 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
             }
             return false;
         }
-//        timeRequired = System.currentTimeMillis() - start;
+        timeRequired = System.currentTimeMillis() - start;
         ocrResult.setBitmap(bitmap);
-//        ocrResult.setText(textResult);
-//        ocrResult.setRecognitionTimeRequired(timeRequired);
+        ocrResult.setText(textResult);
+        ocrResult.setRecognitionTimeRequired(timeRequired);
         return true;
     }
 

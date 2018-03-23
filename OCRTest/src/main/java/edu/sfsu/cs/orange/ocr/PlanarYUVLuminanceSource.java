@@ -112,14 +112,8 @@ public final class PlanarYUVLuminanceSource extends LuminanceSource {
 
     @Override
     public LuminanceSource crop(int left, int top, int width, int height) {
-        return new PlanarYUVLuminanceSource(yuvData,
-                dataWidth,
-                dataHeight,
-                this.left + left,
-                this.top + top,
-                width,
-                height,
-                false);
+        return new PlanarYUVLuminanceSource(yuvData, dataWidth, dataHeight, this.left + left,
+                this.top + top, width, height, false);
     }
 
     public Bitmap renderCroppedGreyscaleBitmap() {

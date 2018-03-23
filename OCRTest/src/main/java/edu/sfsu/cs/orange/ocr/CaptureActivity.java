@@ -735,7 +735,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       Toast toast = Toast.makeText(this, "OCR failed. Please try again.", Toast.LENGTH_SHORT);
       toast.setGravity(Gravity.TOP, 0, 0);
       toast.show();
-//      return false;
+      return false;
     }
     
     // Turn off capture-related UI elements
@@ -755,40 +755,40 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       bitmapImageView.setImageBitmap(lastBitmap);
     }
 
-//    // Display the recognized text
-//    TextView sourceLanguageTextView = (TextView) findViewById(R.id.source_language_text_view);
-//    sourceLanguageTextView.setText(sourceLanguageReadable);
-//    TextView ocrResultTextView = (TextView) findViewById(R.id.ocr_result_text_view);
-//    ocrResultTextView.setText(ocrResult.getText());
-//    // Crudely scale betweeen 22 and 32 -- bigger font for shorter text
-//    int scaledSize = Math.max(22, 32 - ocrResult.getText().length() / 4);
-//    ocrResultTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSize);
-//
-//    TextView translationLanguageLabelTextView = (TextView) findViewById(R.id.translation_language_label_text_view);
-//    TextView translationLanguageTextView = (TextView) findViewById(R.id.translation_language_text_view);
-//    TextView translationTextView = (TextView) findViewById(R.id.translation_text_view);
-//    if (isTranslationActive) {
-//      // Handle translation text fields
-//      translationLanguageLabelTextView.setVisibility(View.VISIBLE);
-//      translationLanguageTextView.setText(targetLanguageReadable);
-//      translationLanguageTextView.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL), Typeface.NORMAL);
-//      translationLanguageTextView.setVisibility(View.VISIBLE);
-//
-//      // Activate/re-activate the indeterminate progress indicator
-//      translationTextView.setVisibility(View.GONE);
-//      progressView.setVisibility(View.VISIBLE);
-//      setProgressBarVisibility(true);
-//
-//      // Get the translation asynchronously
-//      new TranslateAsyncTask(this, sourceLanguageCodeTranslation, targetLanguageCodeTranslation,
-//          ocrResult.getText()).execute();
-//    } else {
-//      translationLanguageLabelTextView.setVisibility(View.GONE);
-//      translationLanguageTextView.setVisibility(View.GONE);
-//      translationTextView.setVisibility(View.GONE);
-//      progressView.setVisibility(View.GONE);
-//      setProgressBarVisibility(false);
-//    }
+    // Display the recognized text
+    TextView sourceLanguageTextView = (TextView) findViewById(R.id.source_language_text_view);
+    sourceLanguageTextView.setText(sourceLanguageReadable);
+    TextView ocrResultTextView = (TextView) findViewById(R.id.ocr_result_text_view);
+    ocrResultTextView.setText(ocrResult.getText());
+    // Crudely scale betweeen 22 and 32 -- bigger font for shorter text
+    int scaledSize = Math.max(22, 32 - ocrResult.getText().length() / 4);
+    ocrResultTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSize);
+
+    TextView translationLanguageLabelTextView = (TextView) findViewById(R.id.translation_language_label_text_view);
+    TextView translationLanguageTextView = (TextView) findViewById(R.id.translation_language_text_view);
+    TextView translationTextView = (TextView) findViewById(R.id.translation_text_view);
+    if (isTranslationActive) {
+      // Handle translation text fields
+      translationLanguageLabelTextView.setVisibility(View.VISIBLE);
+      translationLanguageTextView.setText(targetLanguageReadable);
+      translationLanguageTextView.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL), Typeface.NORMAL);
+      translationLanguageTextView.setVisibility(View.VISIBLE);
+
+      // Activate/re-activate the indeterminate progress indicator
+      translationTextView.setVisibility(View.GONE);
+      progressView.setVisibility(View.VISIBLE);
+      setProgressBarVisibility(true);
+
+      // Get the translation asynchronously
+      new TranslateAsyncTask(this, sourceLanguageCodeTranslation, targetLanguageCodeTranslation,
+          ocrResult.getText()).execute();
+    } else {
+      translationLanguageLabelTextView.setVisibility(View.GONE);
+      translationLanguageTextView.setVisibility(View.GONE);
+      translationTextView.setVisibility(View.GONE);
+      progressView.setVisibility(View.GONE);
+      setProgressBarVisibility(false);
+    }
     return true;
   }
   
