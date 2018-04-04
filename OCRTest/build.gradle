@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion "24.0.2"
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
 
     defaultConfig {
         applicationId "edu.sfsu.cs.orange.ocr"
-        minSdkVersion 9
+        minSdkVersion 16
         targetSdkVersion 10
     }
 
@@ -24,5 +24,7 @@ dependencies {
     compile files('libs/json_simple-1.1.jar')
     compile files('libs/jtar-1.0.4.jar')
     compile files('libs/microsoft-translator-java-api-0.6-mod.jar')
+    compile 'com.android.support:design:26.1.0'
+    compile 'com.android.support:appcompat-v7:26.0.0'
     compile project(':openCVLibrary2411')
 }

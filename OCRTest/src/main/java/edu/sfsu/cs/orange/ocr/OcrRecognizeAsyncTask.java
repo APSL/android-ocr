@@ -15,7 +15,6 @@
  */
 package edu.sfsu.cs.orange.ocr;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import android.graphics.Bitmap;
@@ -43,14 +42,12 @@ import org.opencv.imgproc.Imgproc;
  */
 final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
 
-
     private CaptureActivity activity;
     private TessBaseAPI baseApi;
     private byte[] data;
     private int width;
     private int height;
     private OcrResult ocrResult;
-    private long timeRequired;
 
     OcrRecognizeAsyncTask(CaptureActivity activity, TessBaseAPI baseApi, byte[] data, int width, int height) {
         this.activity = activity;
@@ -70,48 +67,37 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
         Bitmap bitmap = activity.getCameraManager().buildLuminanceSource(data, width, height)
                 .renderCroppedGreyscaleBitmap();
 
-        Size matSize =
-                new Size(bitmap.getWidth(), bitmap.getHeight());
+        if (bitmap == null) {
+            return false;
+        }
 
-        Mat rectKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(13, 5),
-                        new Point(-1, -1));
-
+        Size matSize = new Size(bitmap.getWidth(), bitmap.getHeight());
+        Mat rectKernel = Imgproc.getStructuringElement(
+                Imgproc.MORPH_RECT, new Size(13, 5), new Point(-1, -1));
         // Create a Mat object from bitmap image
         Mat mat = new Mat(bitmap.getWidth(), bitmap.getHeight(), CvType.CV_8UC1);
         Utils.bitmapToMat(bitmap, mat);
 
+        // Convert image to greyscale again
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
-
         // Apply Gaussian Blur filter
-        Imgproc.GaussianBlur(mat, mat, new Size(3,3), 0);
-
-        // Compute the gradient magnitude representation of the blackhat image using the Scharr operator.
-
+        Imgproc.GaussianBlur(mat, mat, new Size(3, 3), 0);
+        // A blackhat operator is used to reveal dark regions
         Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_BLACKHAT, rectKernel);
 
-//        Imgproc.Sobel(mat, mat, CvType.CV_32F, 1, 0);
-//
-//        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_CLOSE, rectKernel);
-
-        Imgproc.adaptiveThreshold(mat, mat, 255,
-                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 3);
-
-//        Imgproc.morphologyEx(mat, mat, Imgproc.MORPH_CLOSE, rectKernel);
-
-//        Imgproc.erode(mat, mat, rectKernel, new Point(-1, -1), 4);
+//        Imgproc.adaptiveThreshold(mat, mat, 255,
+//                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 7, 2);
 
         // Rezize mat to fit with bitmap dimensions
         Imgproc.resize(mat, mat, matSize);
-
         // Convert Mat to Bitmap
         Utils.matToBitmap(mat, bitmap);
 
         String textResult;
-
+        long timeRequired;
         try {
             baseApi.setImage(ReadFile.readBitmap(bitmap));
             textResult = baseApi.getUTF8Text();
-            timeRequired = System.currentTimeMillis() - start;
 
             // Check for failure to recognize text
             if (textResult == null || textResult.equals("")) {
@@ -119,7 +105,7 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
             }
             ocrResult = new OcrResult();
             ocrResult.setWordConfidences(baseApi.wordConfidences());
-            ocrResult.setMeanConfidence( baseApi.meanConfidence());
+            ocrResult.setMeanConfidence(baseApi.meanConfidence());
             ocrResult.setRegionBoundingBoxes(baseApi.getRegions().getBoxRects());
             ocrResult.setTextlineBoundingBoxes(baseApi.getTextlines().getBoxRects());
             ocrResult.setWordBoundingBoxes(baseApi.getWords().getBoxRects());
@@ -128,19 +114,19 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
             // Iterate through the results.
             final ResultIterator iterator = baseApi.getResultIterator();
             int[] lastBoundingBox;
-            ArrayList<Rect> charBoxes = new ArrayList<Rect>();
+            ArrayList<Rect> charBoxes = new ArrayList<>();
             iterator.begin();
             do {
-                lastBoundingBox = iterator.getBoundingBox(TessBaseAPI.PageIteratorLevel.RIL_SYMBOL);
+                lastBoundingBox = iterator.getBoundingBox(PageIteratorLevel.RIL_SYMBOL);
                 Rect lastRectBox = new Rect(lastBoundingBox[0], lastBoundingBox[1],
                         lastBoundingBox[2], lastBoundingBox[3]);
                 charBoxes.add(lastRectBox);
-            } while (iterator.next(TessBaseAPI.PageIteratorLevel.RIL_SYMBOL));
+            } while (iterator.next(PageIteratorLevel.RIL_SYMBOL));
             iterator.delete();
             ocrResult.setCharacterBoundingBoxes(charBoxes);
-
         } catch (RuntimeException e) {
-            Log.e("OcrRecognizeAsyncTask", "Caught RuntimeException in request to Tesseract. Setting state to CONTINUOUS_STOPPED.");
+            Log.e("OcrRecognizeAsyncTask", "Caught RuntimeException in request " +
+                    "to Tesseract. Setting state to CONTINUOUS_STOPPED.");
             e.printStackTrace();
             try {
                 baseApi.clear();
@@ -152,6 +138,12 @@ final class OcrRecognizeAsyncTask extends AsyncTask<Void, Void, Boolean> {
         }
         timeRequired = System.currentTimeMillis() - start;
         ocrResult.setBitmap(bitmap);
+
+        // Delete spaces on result and transform characters to upper case
+//        textResult = textResult.trim();
+//        textResult = textResult.replaceAll("\\s", "");
+        textResult = textResult.toUpperCase();
+
         ocrResult.setText(textResult);
         ocrResult.setRecognitionTimeRequired(timeRequired);
         return true;
